@@ -1,0 +1,115 @@
+Metadata-Version: 2.4
+Name: nvap
+Version: 0.1.0
+Summary: NeuroVascular Analytics Program (NVAP)
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.26
+Requires-Dist: scipy>=1.11
+Requires-Dist: scikit-image>=0.22
+Requires-Dist: pandas>=2.1
+Requires-Dist: imageio>=2.33
+Requires-Dist: PySide6>=6.6
+Requires-Dist: vtk>=9.2
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-qt>=4.4; extra == "dev"
+Requires-Dist: pyinstaller>=6.3; extra == "dev"
+
+# NVAP
+
+NVAP (NeuroVascular Analytics Program) is a desktop 3D viewer and analyzer for microscopy image stacks containing:
+
+- Green channel: microglia
+- Red channel: vasculature
+
+It supports missing-slice interpolation, PSF-based deconvolution, 3D volume + isosurface rendering, basic metrics, and export.
+
+## Units and spacing
+
+Default voxel spacing is interpreted in micrometers:
+
+- `x = 0.331 um`
+- `y = 0.331 um`
+- `z = 0.4 um`
+
+## Expected input layout
+
+Default auto-detection expects either:
+
+- `Input/Segmented/Green/*.png`
+- `Input/Segmented/Red/*.png`
+
+or a selected root containing `Segmented/Green` and `Segmented/Red`.
+
+Filenames should include z-index and channel marker, for example:
+
+- `..._z030c1.png` (green)
+- `..._z030c2.png` (red)
+
+## Run from source
+
+### PowerShell quick start (Windows)
+
+```powershell
+# From repo root
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+If activation is blocked:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+Launch GUI:
+
+```powershell
+nvap
+```
+
+Optional headless smoke test:
+
+```powershell
+nvap --headless-smoke --input Input
+```
+
+Run tests:
+
+```powershell
+python -m pytest
+```
+
+## Windows packaging
+
+Use:
+
+```powershell
+.\scripts\build_windows.ps1
+```
+
+This builds a one-folder executable in `dist/NVAP/`.
+
+## Current v1 capabilities
+
+- Auto-detect channels with manual directory override fallback.
+- Missing z-slice interpolation.
+- Anisotropic Gaussian PSF + Richardson-Lucy deconvolution.
+- 3D rendering per channel with independent controls.
+- Basic metrics:
+  - voxel count
+  - physical volume
+  - connected component count
+  - largest component size
+  - red-green overlap in shared z-range
+- Export:
+  - metrics CSV
+  - snapshot PNG
+
+## AI extension scaffold
+
+NVAP exposes plugin discovery through the `nvap.plugins` entry point group and a `ChannelAnalyzerPlugin` protocol. v1 includes extension points only.
