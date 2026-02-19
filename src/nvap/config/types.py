@@ -60,8 +60,29 @@ class PreprocessConfig:
     contrast_high_pct: float = 99.8
     denoise_method: Literal["anisotropic", "bilateral", "non_local_means", "none"] = "anisotropic"
     denoise_strength: float = 0.012
-    green_denoise_multiplier: float = 1.8
+    green_denoise_multiplier: float = 2.8
     preserve_branches: bool = True
+    green_denoise_strategy: Literal[
+        "hybrid_auto",
+        "classical_branch_aware",
+        "bm4d",
+        "noise2void",
+        "legacy_anisotropic",
+    ] = "hybrid_auto"
+    green_noise_model: Literal["auto", "poisson_gaussian", "gaussian"] = "auto"
+    green_branch_protection: float = 0.65
+    green_nlm_patch_size: int = 3
+    green_nlm_patch_distance: int = 4
+    green_nlm_h_factor: float = 0.9
+    green_apply_vst: bool = True
+    green_pre_deconv_strength: float = 0.85
+    green_post_deconv_strength: float = 0.45
+    green_speckle_min_voxels: int = 10
+    green_speckle_attenuation: float = 0.12
+    green_noise2void_model_path: str = ""
+    green_chunked_processing: bool = True
+    green_chunk_depth: int = 48
+    green_chunk_overlap: int = 4
     resample_for_mesh: bool = True
     mesh_target_z_um: float = 0.331
 

@@ -24,6 +24,11 @@ Default auto-detection expects either:
 
 or a selected root containing `Segmented/Green` and `Segmented/Red`.
 
+NVAP also supports a single user-selected folder of RGB PNG slices when:
+
+- filenames include `_z###` (for example `sample_z030.png`), and
+- slice pixels are red/green-only (black background allowed; blue or mixed red+green pixels are ignored).
+
 Filenames should include z-index and channel marker, for example:
 
 - `..._z030c1.png` (green)
@@ -39,6 +44,16 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
+```
+
+Optional denoise backends:
+
+```powershell
+# BM4D backend
+python -m pip install -e ".[denoise_bm4d]"
+
+# Torch / model backend
+python -m pip install -e ".[denoise_torch]"
 ```
 
 If activation is blocked:
@@ -78,6 +93,7 @@ python -m pytest
 2. Choose a root folder that contains either:
 - `Segmented/Green` and `Segmented/Red`, or
 - `Input/Segmented/Green` and `Input/Segmented/Red`.
+  You can also choose a single folder of RGB `_z###.png` slices that use only red/green pixels.
 3. If auto-detection fails, NVAP prompts you to select Green and Red folders manually.
 4. Wait for loading dialogs to complete:
 - channel stack load
@@ -104,12 +120,50 @@ NVAP now applies a preprocessing chain before deconvolution:
 - Per-slice contrast normalization
 - Branch-preserving denoise (anisotropic default, stronger on green channel)
 
+Green channel denoising now supports strategies:
+
+- `hybrid_auto` (default fallback chain: Noise2Void model -> BM4D -> classical branch-aware)
+- `classical_branch_aware`
+- `bm4d`
+- `noise2void` (TorchScript model path optional in UI)
+- `legacy_anisotropic` (compatibility baseline)
+
+In the `Green Denoising` panel you can tune branch protection, NLM parameters, noise model, speckle controls,
+and pre/post deconvolution denoise strength. You can preview a selected z-index and apply settings to full volume.
+
 To better clean isosurfaces from anisotropic microscopy stacks, NVAP also resamples Z to near-isotropic spacing for mesh rendering.
 Metrics remain computed on the processed (non-resampled) dataset.
 
 For visualization, NVAP additionally applies a display-only Z squeeze (2/3 scale) so depth is less visually disproportionate.
 
 For green microglia, default threshold initialization is biased lower to reduce the risk of cutting faint branches.
+Threshold suggestion now uses a branch-aware green mode by default.
+
+### Green denoise benchmark
+
+CLI benchmark report:
+
+```powershell
+nvap --benchmark-denoise --input Input --output green_denoise_report.json
+```
+
+Override strategy/profile:
+
+```powershell
+nvap --benchmark-denoise --input Input --output report.json --green-denoise-strategy classical_branch_aware --green-denoise-profile low_snr
+```
+
+Script alternative:
+
+```powershell
+python scripts/benchmark_green_denoise.py --input Input --output report.json --strategy hybrid_auto
+```
+
+### Green denoise cookbook
+
+- Faint branches, noisy stack: `hybrid_auto`, branch protection `0.7-0.8`, pre `0.9-1.1`, post `0.45-0.65`.
+- High-SNR stacks: `classical_branch_aware`, branch protection `0.75+`, pre `0.5-0.7`, post `0.15-0.3`.
+- Speckle-heavy output: increase `Speckle min voxels` and lower `Speckle attenuation` to suppress grains while retaining filaments.
 
 ### Measured PSF support
 

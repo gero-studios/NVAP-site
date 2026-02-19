@@ -93,9 +93,15 @@ class VTKScene:
         image = self._numpy_to_vtk_image(volume, spacing)
         mapper = self._build_volume_mapper(image)
         prop = vtkVolumeProperty()
-        prop.ShadeOff()
+        prop.ShadeOn()
         prop.SetInterpolationTypeToLinear()
         prop.IndependentComponentsOn()
+        prop.SetAmbient(0.2)
+        prop.SetDiffuse(0.78)
+        prop.SetSpecular(0.2)
+        prop.SetSpecularPower(16.0)
+        unit_distance = float(max(spacing.x_um, spacing.y_um, spacing.z_um) * 1.8)
+        prop.SetScalarOpacityUnitDistance(max(0.1, unit_distance))
         volume_actor = vtkVolume()
         volume_actor.SetMapper(mapper)
         volume_actor.SetProperty(prop)
@@ -113,8 +119,14 @@ class VTKScene:
             rgb = (0.1, 1.0, 0.2)
         else:
             rgb = (1.0, 0.2, 0.2)
-        iso_actor.GetProperty().SetColor(*rgb)
-        iso_actor.GetProperty().SetOpacity(0.8)
+        iso_prop = iso_actor.GetProperty()
+        iso_prop.SetColor(*rgb)
+        iso_prop.SetOpacity(0.8)
+        iso_prop.SetInterpolationToPhong()
+        iso_prop.SetAmbient(0.18)
+        iso_prop.SetDiffuse(0.82)
+        iso_prop.SetSpecular(0.28)
+        iso_prop.SetSpecularPower(22.0)
 
         self._renderer.AddVolume(volume_actor)
         self._renderer.AddActor(iso_actor)
@@ -182,6 +194,8 @@ class VTKScene:
             visible = bool(config.show_green)
             show_iso = bool(config.show_iso_green)
             rgb = (0.1, 1.0, 0.2)
+            knee = 0.022
+            low_opacity_scale = 0.07
         else:
             threshold = float(config.threshold_red)
             opacity = float(config.opacity_red)
@@ -189,6 +203,8 @@ class VTKScene:
             visible = bool(config.show_red)
             show_iso = bool(config.show_iso_red)
             rgb = (1.0, 0.2, 0.2)
+            knee = 0.018
+            low_opacity_scale = 0.15
 
         threshold = float(np.clip(threshold, 0.0, 1.0))
         opacity = float(np.clip(opacity, 0.0, 1.0))
@@ -196,8 +212,8 @@ class VTKScene:
 
         color_tf = vtkColorTransferFunction()
         color_tf.AddRGBPoint(0.0, 0.0, 0.0, 0.0)
-        color_tf.AddRGBPoint(max(0.0, threshold - 0.02), 0.0, 0.0, 0.0)
-        color_tf.AddRGBPoint(min(1.0, threshold + 0.02), rgb[0], rgb[1], rgb[2])
+        color_tf.AddRGBPoint(max(0.0, threshold - knee), 0.0, 0.0, 0.0)
+        color_tf.AddRGBPoint(min(1.0, threshold + knee), rgb[0], rgb[1], rgb[2])
         color_tf.AddRGBPoint(1.0, rgb[0], rgb[1], rgb[2])
 
         scalar_opacity = actor.volume_property.GetScalarOpacity()
@@ -205,12 +221,20 @@ class VTKScene:
             scalar_opacity = vtkPiecewiseFunction()
         scalar_opacity.RemoveAllPoints()
         scalar_opacity.AddPoint(0.0, 0.0)
-        scalar_opacity.AddPoint(max(0.0, threshold - 0.01), 0.0)
-        scalar_opacity.AddPoint(min(1.0, threshold + 0.01), opacity * 0.2)
+        scalar_opacity.AddPoint(max(0.0, threshold - knee), 0.0)
+        scalar_opacity.AddPoint(min(1.0, threshold + knee), opacity * low_opacity_scale)
+        scalar_opacity.AddPoint(min(1.0, threshold + (knee * 2.8)), opacity * 0.55)
         scalar_opacity.AddPoint(1.0, opacity)
+
+        gradient_opacity = vtkPiecewiseFunction()
+        gradient_opacity.AddPoint(0.0, 0.0)
+        gradient_opacity.AddPoint(max(0.01, threshold * 0.3), 0.05)
+        gradient_opacity.AddPoint(min(1.0, threshold + 0.06), 0.55)
+        gradient_opacity.AddPoint(1.0, 1.0)
 
         actor.volume_property.SetColor(color_tf)
         actor.volume_property.SetScalarOpacity(scalar_opacity)
+        actor.volume_property.SetGradientOpacity(0, gradient_opacity)
         actor.volume_actor.SetVisibility(1 if visible else 0)
         actor.marching.SetValue(0, iso)
         actor.iso_actor.SetVisibility(1 if (visible and show_iso) else 0)

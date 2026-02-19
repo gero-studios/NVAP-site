@@ -8,7 +8,11 @@ import numpy as np
 from skimage.filters import threshold_otsu
 
 from nvap.config.types import ChannelVolume, DatasetVolume, PSFConfig, PreprocessConfig
-from nvap.preprocess.enhancement import preprocess_dataset
+from nvap.preprocess.enhancement import (
+    postprocess_green_after_deconvolution,
+    preprocess_dataset,
+    suggest_green_threshold,
+)
 from nvap.preprocess.missing_slices import fill_channel_missing_slices
 from nvap.preprocess.psf import deconvolve_volume
 from nvap.preprocess.resample import prepare_mesh_dataset
@@ -41,6 +45,7 @@ def fill_and_sync_dataset(dataset: DatasetVolume) -> DatasetVolume:
 def apply_psf_to_dataset(
     dataset: DatasetVolume,
     config: PSFConfig,
+    preprocess_config: PreprocessConfig | None = None,
     cancel_event: threading.Event | None = None,
     progress_callback: Callable[[str, int, int], None] | None = None,
 ) -> DatasetVolume:
@@ -79,7 +84,10 @@ def apply_psf_to_dataset(
         z_indices=list(dataset.red.z_indices),
         spacing=dataset.red.spacing,
     )
-    return DatasetVolume(green=green, red=red, shared_z_range=dataset.shared_z_range)
+    out = DatasetVolume(green=green, red=red, shared_z_range=dataset.shared_z_range)
+    if preprocess_config is not None:
+        out = postprocess_green_after_deconvolution(out, preprocess_config)
+    return out
 
 
 def preprocess_for_deconvolution(
@@ -108,4 +116,10 @@ def default_threshold(volume: np.ndarray, fallback: float = 0.15) -> float:
         return fallback
     result = float(np.clip(value, 0.0, 1.0))
     logger.debug("Computed Otsu threshold=%.5f fallback=%.5f", result, fallback)
+    return result
+
+
+def default_green_threshold(volume: np.ndarray, fallback: float = 0.15) -> float:
+    result = suggest_green_threshold(volume, fallback=fallback)
+    logger.debug("Computed branch-aware green threshold=%.5f fallback=%.5f", result, fallback)
     return result

@@ -10,7 +10,7 @@ from nvap.config.types import ChannelVolume, DatasetVolume, PSFConfig, Preproces
 
 logger = logging.getLogger(__name__)
 
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 CACHE_DIRNAME = ".nvap_cache"
 
 
@@ -71,6 +71,21 @@ def build_processed_cache_key(
                 f"{preprocess_config.denoise_strength:.6f},"
                 f"{preprocess_config.green_denoise_multiplier:.6f},"
                 f"{int(preprocess_config.preserve_branches)},"
+                f"{preprocess_config.green_denoise_strategy},"
+                f"{preprocess_config.green_noise_model},"
+                f"{preprocess_config.green_branch_protection:.6f},"
+                f"{int(preprocess_config.green_nlm_patch_size)},"
+                f"{int(preprocess_config.green_nlm_patch_distance)},"
+                f"{preprocess_config.green_nlm_h_factor:.6f},"
+                f"{int(preprocess_config.green_apply_vst)},"
+                f"{preprocess_config.green_pre_deconv_strength:.6f},"
+                f"{preprocess_config.green_post_deconv_strength:.6f},"
+                f"{int(preprocess_config.green_speckle_min_voxels)},"
+                f"{preprocess_config.green_speckle_attenuation:.6f},"
+                f"{preprocess_config.green_noise2void_model_path},"
+                f"{int(preprocess_config.green_chunked_processing)},"
+                f"{int(preprocess_config.green_chunk_depth)},"
+                f"{int(preprocess_config.green_chunk_overlap)},"
                 f"{int(preprocess_config.resample_for_mesh)},"
                 f"{preprocess_config.mesh_target_z_um:.6f}"
             ).encode("utf-8", errors="ignore")

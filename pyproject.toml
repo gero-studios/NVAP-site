@@ -24,6 +24,12 @@ dev = [
   "pytest-qt>=4.4",
   "pyinstaller>=6.3",
 ]
+denoise_bm4d = [
+  "bm4d>=4.2.5",
+]
+denoise_torch = [
+  "torch>=2.2",
+]
 
 [project.scripts]
 nvap = "nvap.app:main"

@@ -3,10 +3,12 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDoubleSpinBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QLineEdit,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
@@ -14,7 +16,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
 )
 
-from nvap.config.types import PSFConfig, RenderConfig
+from nvap.config.types import PSFConfig, PreprocessConfig, RenderConfig
 
 
 class ControlPanel(QWidget):
@@ -22,6 +24,9 @@ class ControlPanel(QWidget):
     apply_psf_requested = Signal()
     render_config_changed = Signal(object)
     psf_config_changed = Signal(object)
+    preprocess_config_changed = Signal(object)
+    preview_green_denoise_requested = Signal()
+    apply_green_denoise_requested = Signal()
     export_metrics_requested = Signal()
     export_snapshot_requested = Signal()
 
@@ -40,6 +45,9 @@ class ControlPanel(QWidget):
 
         self.psf_group = self._build_psf_group()
         root.addWidget(self.psf_group)
+
+        self.preprocess_group = self._build_preprocess_group()
+        root.addWidget(self.preprocess_group)
 
         export_group = QGroupBox("Export")
         export_layout = QHBoxLayout(export_group)
@@ -78,6 +86,7 @@ class ControlPanel(QWidget):
         root.addStretch(1)
         self._emit_render_config()
         self._emit_psf_config()
+        self._emit_preprocess_config()
 
     def _build_render_group(self) -> QGroupBox:
         group = QGroupBox("Rendering")
@@ -166,6 +175,109 @@ class ControlPanel(QWidget):
         form.addRow(apply_btn)
         return group
 
+    def _build_preprocess_group(self) -> QGroupBox:
+        group = QGroupBox("Green Denoising")
+        form = QFormLayout(group)
+
+        self.green_strategy = QComboBox()
+        self.green_strategy.addItems(
+            [
+                "hybrid_auto",
+                "classical_branch_aware",
+                "bm4d",
+                "noise2void",
+                "legacy_anisotropic",
+            ]
+        )
+        self.green_strategy.currentTextChanged.connect(self._emit_preprocess_config)
+        form.addRow("Strategy", self.green_strategy)
+
+        self.green_noise_model = QComboBox()
+        self.green_noise_model.addItems(["auto", "poisson_gaussian", "gaussian"])
+        self.green_noise_model.currentTextChanged.connect(self._emit_preprocess_config)
+        form.addRow("Noise model", self.green_noise_model)
+
+        self.green_branch_protection = self._make_unit_spinbox(0.0, 1.0, 0.01, 0.65)
+        self.green_branch_protection.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Branch protection", self.green_branch_protection)
+
+        self.green_nlm_patch_size = QSpinBox()
+        self.green_nlm_patch_size.setRange(1, 9)
+        self.green_nlm_patch_size.setSingleStep(1)
+        self.green_nlm_patch_size.setValue(3)
+        self.green_nlm_patch_size.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("NLM patch size", self.green_nlm_patch_size)
+
+        self.green_nlm_patch_distance = QSpinBox()
+        self.green_nlm_patch_distance.setRange(1, 12)
+        self.green_nlm_patch_distance.setValue(4)
+        self.green_nlm_patch_distance.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("NLM patch dist", self.green_nlm_patch_distance)
+
+        self.green_nlm_h_factor = self._make_unit_spinbox(0.1, 3.0, 0.05, 0.9)
+        self.green_nlm_h_factor.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("NLM h factor", self.green_nlm_h_factor)
+
+        self.green_apply_vst = QCheckBox("Apply VST (Anscombe)")
+        self.green_apply_vst.setChecked(True)
+        self.green_apply_vst.stateChanged.connect(self._emit_preprocess_config)
+        form.addRow(self.green_apply_vst)
+
+        self.green_pre_deconv_strength = self._make_unit_spinbox(0.0, 2.0, 0.05, 0.85)
+        self.green_pre_deconv_strength.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Pre-deconv strength", self.green_pre_deconv_strength)
+
+        self.green_post_deconv_strength = self._make_unit_spinbox(0.0, 2.0, 0.05, 0.45)
+        self.green_post_deconv_strength.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Post-deconv strength", self.green_post_deconv_strength)
+
+        self.green_speckle_min_voxels = QSpinBox()
+        self.green_speckle_min_voxels.setRange(2, 500)
+        self.green_speckle_min_voxels.setValue(10)
+        self.green_speckle_min_voxels.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Speckle min voxels", self.green_speckle_min_voxels)
+
+        self.green_speckle_attenuation = self._make_unit_spinbox(0.0, 1.0, 0.01, 0.12)
+        self.green_speckle_attenuation.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Speckle attenuation", self.green_speckle_attenuation)
+
+        self.green_noise2void_model_path = QLineEdit()
+        self.green_noise2void_model_path.setPlaceholderText("Optional TorchScript model path")
+        self.green_noise2void_model_path.editingFinished.connect(self._emit_preprocess_config)
+        form.addRow("N2V model path", self.green_noise2void_model_path)
+
+        self.green_chunked_processing = QCheckBox("Chunked processing")
+        self.green_chunked_processing.setChecked(True)
+        self.green_chunked_processing.stateChanged.connect(self._emit_preprocess_config)
+        form.addRow(self.green_chunked_processing)
+
+        self.green_chunk_depth = QSpinBox()
+        self.green_chunk_depth.setRange(8, 512)
+        self.green_chunk_depth.setValue(48)
+        self.green_chunk_depth.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Chunk depth", self.green_chunk_depth)
+
+        self.green_chunk_overlap = QSpinBox()
+        self.green_chunk_overlap.setRange(0, 64)
+        self.green_chunk_overlap.setValue(4)
+        self.green_chunk_overlap.valueChanged.connect(self._emit_preprocess_config)
+        form.addRow("Chunk overlap", self.green_chunk_overlap)
+
+        self.preview_z_index = QSpinBox()
+        self.preview_z_index.setRange(0, 100000)
+        self.preview_z_index.setValue(0)
+        form.addRow("Preview z index", self.preview_z_index)
+
+        row = QHBoxLayout()
+        preview_btn = QPushButton("Preview Green Denoise")
+        preview_btn.clicked.connect(self.preview_green_denoise_requested.emit)
+        apply_btn = QPushButton("Apply to Full Volume")
+        apply_btn.clicked.connect(self.apply_green_denoise_requested.emit)
+        row.addWidget(preview_btn)
+        row.addWidget(apply_btn)
+        form.addRow(row)
+        return group
+
     @staticmethod
     def _make_unit_spinbox(minimum: float, maximum: float, step: float, value: float):
         spin = QDoubleSpinBox()
@@ -189,6 +301,9 @@ class ControlPanel(QWidget):
 
     def _emit_psf_config(self) -> None:
         self.psf_config_changed.emit(self.current_psf_config())
+
+    def _emit_preprocess_config(self) -> None:
+        self.preprocess_config_changed.emit(self.current_preprocess_config())
 
     def current_render_config(self) -> RenderConfig:
         return RenderConfig(
@@ -214,6 +329,31 @@ class ControlPanel(QWidget):
             sigma_z_um=float(self.sigma_z.value()),
             iterations=int(self.iterations.value()),
         )
+
+    def current_preprocess_config(self) -> PreprocessConfig:
+        patch_size = int(self.green_nlm_patch_size.value())
+        if patch_size % 2 == 0:
+            patch_size += 1
+        return PreprocessConfig(
+            green_denoise_strategy=str(self.green_strategy.currentText()),
+            green_noise_model=str(self.green_noise_model.currentText()),
+            green_branch_protection=float(self.green_branch_protection.value()),
+            green_nlm_patch_size=int(patch_size),
+            green_nlm_patch_distance=int(self.green_nlm_patch_distance.value()),
+            green_nlm_h_factor=float(self.green_nlm_h_factor.value()),
+            green_apply_vst=self.green_apply_vst.isChecked(),
+            green_pre_deconv_strength=float(self.green_pre_deconv_strength.value()),
+            green_post_deconv_strength=float(self.green_post_deconv_strength.value()),
+            green_speckle_min_voxels=int(self.green_speckle_min_voxels.value()),
+            green_speckle_attenuation=float(self.green_speckle_attenuation.value()),
+            green_noise2void_model_path=self.green_noise2void_model_path.text().strip(),
+            green_chunked_processing=self.green_chunked_processing.isChecked(),
+            green_chunk_depth=int(self.green_chunk_depth.value()),
+            green_chunk_overlap=int(self.green_chunk_overlap.value()),
+        )
+
+    def current_preview_z_index(self) -> int:
+        return int(self.preview_z_index.value())
 
     def set_threshold_defaults(self, green: float, red: float) -> None:
         self.threshold_green.blockSignals(True)

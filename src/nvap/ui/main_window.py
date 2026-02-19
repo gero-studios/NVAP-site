@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable
 
+import numpy as np
 from PySide6.QtCore import QObject, QThread, QTimer, Qt, Signal
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,6 +29,7 @@ from nvap.cache.processed_cache import (
 )
 from nvap.config.types import (
     DEFAULT_SPACING,
+    ChannelVolume,
     DatasetVolume,
     MetricsComputation,
     PSFConfig,
@@ -39,11 +41,13 @@ from nvap.export.exporters import export_metrics_csv
 from nvap.io.stack_loader import inspect_dataset_stats, load_dataset, resolve_channel_dirs
 from nvap.pipeline import (
     apply_psf_to_dataset,
+    default_green_threshold,
     default_threshold,
     fill_and_sync_dataset,
     prepare_dataset_for_mesh,
     preprocess_for_deconvolution,
 )
+from nvap.preprocess.enhancement import preprocess_channel
 from nvap.plugins.registry import discover_plugins
 from nvap.render.vtk_scene import VTKScene
 from nvap.ui.control_panel import ControlPanel
@@ -110,7 +114,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
 
         self.spacing = DEFAULT_SPACING
-        self.preprocess_config = PreprocessConfig()
+        self.preprocess_config = self.controls.current_preprocess_config()
         self.raw_dataset: DatasetVolume | None = None
         self.processed_dataset: DatasetVolume | None = None
         self.visual_dataset: DatasetVolume | None = None
@@ -143,6 +147,9 @@ class MainWindow(QMainWindow):
         self.controls.load_requested.connect(self._on_load_requested)
         self.controls.apply_psf_requested.connect(self._on_apply_psf_requested)
         self.controls.psf_config_changed.connect(self._on_psf_config_changed)
+        self.controls.preprocess_config_changed.connect(self._on_preprocess_config_changed)
+        self.controls.preview_green_denoise_requested.connect(self._on_preview_green_denoise_requested)
+        self.controls.apply_green_denoise_requested.connect(self._on_apply_green_denoise_requested)
         self.controls.render_config_changed.connect(self._on_render_config_changed)
         self.controls.export_metrics_requested.connect(self._on_export_metrics_requested)
         self.controls.export_snapshot_requested.connect(self._on_export_snapshot_requested)
@@ -518,10 +525,8 @@ class MainWindow(QMainWindow):
             cancel_event=None,
         )
         visual_dataset = prepare_dataset_for_mesh(processed_dataset, self.preprocess_config)
-        threshold_green = default_threshold(processed_dataset.green.data)
+        threshold_green = default_green_threshold(processed_dataset.green.data)
         threshold_red = default_threshold(processed_dataset.red.data)
-        if self.preprocess_config.preserve_branches:
-            threshold_green = max(0.02, threshold_green * 0.88)
         return _LoadTaskResult(
             raw_dataset=raw_dataset,
             processed_dataset=processed_dataset,
@@ -601,6 +606,7 @@ class MainWindow(QMainWindow):
         processed = apply_psf_to_dataset(
             preprocessed_dataset,
             psf_cfg,
+            preprocess_config=preprocess_cfg,
             cancel_event=cancel_event,
         )
         if cache_key is not None and (cancel_event is None or not cancel_event.is_set()):
@@ -642,6 +648,91 @@ class MainWindow(QMainWindow):
                 4000,
             )
 
+    def _on_preprocess_config_changed(self, config: PreprocessConfig) -> None:
+        self.preprocess_config = config
+        self._log_info(
+            "Green denoise config updated: strategy="
+            f"{config.green_denoise_strategy}, branch_protection={config.green_branch_protection:.2f}"
+        )
+
+    def _on_preview_green_denoise_requested(self) -> None:
+        if self.raw_dataset is None:
+            self._show_error("No dataset", "Load a dataset before previewing denoise.")
+            return
+
+        def run_preview() -> dict[str, float]:
+            assert self.raw_dataset is not None
+            green = self.raw_dataset.green
+            z_count = len(green.z_indices)
+            selected = self.controls.current_preview_z_index()
+            center = int(np.clip(selected, 0, max(0, z_count - 1)))
+            start = max(0, center - 2)
+            end = min(z_count, center + 3)
+            sample_channel = ChannelVolume(
+                name="green",
+                data=np.asarray(green.data[start:end], dtype=np.float32),
+                z_indices=list(green.z_indices[start:end]),
+                spacing=green.spacing,
+            )
+            out = preprocess_channel(sample_channel, self.preprocess_config)
+            before_std = float(np.std(sample_channel.data))
+            after_std = float(np.std(out.data))
+            before_mean = float(np.mean(sample_channel.data))
+            after_mean = float(np.mean(out.data))
+            return {
+                "before_std": before_std,
+                "after_std": after_std,
+                "before_mean": before_mean,
+                "after_mean": after_mean,
+                "z_start": float(start),
+                "z_end": float(end - 1),
+            }
+
+        def on_preview_success(result: object) -> None:
+            if not isinstance(result, dict):
+                raise TypeError("Invalid preview payload.")
+            self._log_info(
+                "Green denoise preview z="
+                f"{int(result['z_start'])}-{int(result['z_end'])} "
+                f"std {result['before_std']:.5f}->{result['after_std']:.5f} "
+                f"mean {result['before_mean']:.5f}->{result['after_mean']:.5f}"
+            )
+            self.statusBar().showMessage("Green denoise preview computed. See Debug Log.", 5000)
+
+        self._start_background_task(
+            title="Preview Green Denoise",
+            message="Evaluating current green denoise settings on center slices...",
+            fn=run_preview,
+            on_success=on_preview_success,
+            error_title="Green denoise preview failed",
+        )
+
+    def _on_apply_green_denoise_requested(self) -> None:
+        if self.raw_dataset is None:
+            self._show_error("No dataset", "Load a dataset before applying denoise.")
+            return
+        raw_dataset = self.raw_dataset
+        psf_cfg = self._effective_psf_config(self.current_psf)
+        self.current_psf = psf_cfg
+        dataset_signature = self._dataset_signature
+        eta_seconds = self._estimate_psf_eta_seconds(raw_dataset, psf_cfg)
+        self._start_background_task(
+            title="Apply Green Denoise",
+            message="Applying green denoise settings across full volume...",
+            fn=lambda: self._get_processed_dataset_with_cache(
+                raw_dataset,
+                psf_cfg,
+                self.preprocess_config,
+                dataset_signature,
+                cancel_event=None,
+            ),
+            on_success=self._on_psf_task_success,
+            error_title="Green denoise apply failed",
+            success_status="Green denoise settings applied.",
+            eta_total_seconds=eta_seconds,
+            eta_kind="psf",
+        )
+
     def _on_apply_psf_requested(self) -> None:
         if self.raw_dataset is None:
             self._show_error("No dataset", "Load a dataset before applying PSF.")
@@ -681,7 +772,11 @@ class MainWindow(QMainWindow):
         self._set_busy_message("Applying PSF deconvolution to channels...")
         psf_cfg = self._effective_psf_config(self.current_psf)
         preprocessed = preprocess_for_deconvolution(self.raw_dataset, self.preprocess_config)
-        self.processed_dataset = apply_psf_to_dataset(preprocessed, psf_cfg)
+        self.processed_dataset = apply_psf_to_dataset(
+            preprocessed,
+            psf_cfg,
+            preprocess_config=self.preprocess_config,
+        )
         self.visual_dataset = prepare_dataset_for_mesh(self.processed_dataset, self.preprocess_config)
         self._log_debug(
             f"Processed dataset shapes - green={self.processed_dataset.green.data.shape}, "
@@ -703,7 +798,7 @@ class MainWindow(QMainWindow):
 
         if update_thresholds:
             self._set_busy_message("Computing initial Otsu thresholds...")
-            tg = default_threshold(self.processed_dataset.green.data)
+            tg = default_green_threshold(self.processed_dataset.green.data)
             tr = default_threshold(self.processed_dataset.red.data)
             self.controls.set_threshold_defaults(tg, tr)
             self._log_info(f"Default thresholds set: green={tg:.4f}, red={tr:.4f}")

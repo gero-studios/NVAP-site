@@ -13,6 +13,7 @@ from nvap.config.types import DEFAULT_SPACING, ChannelVolume, DatasetVolume, Vox
 logger = logging.getLogger(__name__)
 
 FILE_PATTERN = re.compile(r"_z(?P<z>\d+)(?P<channel>c[12])\.png$", re.IGNORECASE)
+COMBINED_FILE_PATTERN = re.compile(r"_z(?P<z>\d+)(?:c[12])?\.png$", re.IGNORECASE)
 CHANNEL_DIR = {"green": "Green", "red": "Red"}
 CHANNEL_ID = {"green": "c1", "red": "c2"}
 CHANNEL_RGB_INDEX = {"green": 1, "red": 0}
@@ -100,6 +101,38 @@ def _extract_and_normalize_plane(image: np.ndarray, channel_name: str) -> np.nda
     return np.clip(normalized, 0.0, 1.0)
 
 
+def _is_red_green_only_image(image: np.ndarray) -> bool:
+    if image.ndim != 3 or image.shape[-1] < 3:
+        return False
+    rgb = image[..., :3]
+    if np.issubdtype(rgb.dtype, np.floating):
+        eps = 1.0e-6
+        red = rgb[..., 0] > eps
+        green = rgb[..., 1] > eps
+        blue = rgb[..., 2] > eps
+    else:
+        red = rgb[..., 0] != 0
+        green = rgb[..., 1] != 0
+        blue = rgb[..., 2] != 0
+    # Allow pure red, pure green, or black background only.
+    return not bool(np.any(blue | (red & green)))
+
+
+def _list_combined_rg_files(channel_dir: Path) -> list[tuple[int, Path]]:
+    pairs: list[tuple[int, Path]] = []
+    for file_path in channel_dir.glob("*.png"):
+        match = COMBINED_FILE_PATTERN.search(file_path.name)
+        if not match:
+            continue
+        image = iio.imread(file_path)
+        if not _is_red_green_only_image(image):
+            continue
+        z_index = int(match.group("z"))
+        pairs.append((z_index, file_path))
+    pairs.sort(key=lambda item: item[0])
+    return pairs
+
+
 def _list_channel_files(channel_dir: Path, channel_name: str) -> list[tuple[int, Path]]:
     pairs: list[tuple[int, Path]] = []
     expected_channel = CHANNEL_ID[channel_name]
@@ -113,10 +146,20 @@ def _list_channel_files(channel_dir: Path, channel_name: str) -> list[tuple[int,
             continue
         pairs.append((z_index, file_path))
     pairs.sort(key=lambda item: item[0])
+    if pairs:
+        return pairs
+
+    pairs = _list_combined_rg_files(channel_dir)
     if not pairs:
         raise FileNotFoundError(
             f"No channel files found for '{channel_name}' in {channel_dir}."
         )
+    logger.info(
+        "Using combined red/green RGB slices for channel '%s' from %s (count=%d).",
+        channel_name,
+        channel_dir,
+        len(pairs),
+    )
     return pairs
 
 
@@ -231,9 +274,23 @@ def resolve_channel_dirs(
             break
 
     if selected_root is None:
+        for candidate in _candidate_segmented_roots(root):
+            if not candidate.exists() or not candidate.is_dir():
+                continue
+            combined_files = _list_combined_rg_files(candidate)
+            if not combined_files:
+                continue
+            channel_dirs["green"] = candidate
+            channel_dirs["red"] = candidate
+            logger.info(
+                "Auto-detected combined red/green RGB dataset under: %s (slices=%d)",
+                candidate,
+                len(combined_files),
+            )
+            return channel_dirs
         raise FileNotFoundError(
-            f"Could not auto-detect channel folders under: {root}. "
-            "Expected Green and Red directories in a Segmented folder."
+            f"Could not auto-detect channel folders or combined red/green RGB slices under: {root}. "
+            "Expected Green and Red directories in a Segmented folder, or RGB PNG slices with only red/green pixels."
         )
     green_dir = _find_channel_dir(selected_root, "green")
     red_dir = _find_channel_dir(selected_root, "red")

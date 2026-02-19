@@ -42,6 +42,11 @@ Default auto-detection expects either:
 
 or a selected root containing `Segmented/Green` and `Segmented/Red`.
 
+NVAP also supports a single user-selected folder of RGB PNG slices when:
+
+- filenames include `_z###` (for example `sample_z030.png`), and
+- slice pixels are red/green-only (black background allowed; blue or mixed red+green pixels are ignored).
+
 Filenames should include z-index and channel marker, for example:
 
 - `..._z030c1.png` (green)
@@ -72,6 +77,12 @@ Launch GUI:
 nvap
 ```
 
+Launch GUI with verbose debug logs:
+
+```powershell
+nvap --debug
+```
+
 Optional headless smoke test:
 
 ```powershell
@@ -83,6 +94,62 @@ Run tests:
 ```powershell
 python -m pytest
 ```
+
+## How to load dataset in NVAP
+
+1. Click `Load Dataset`.
+2. Choose a root folder that contains either:
+- `Segmented/Green` and `Segmented/Red`, or
+- `Input/Segmented/Green` and `Input/Segmented/Red`.
+  You can also choose a single folder of RGB `_z###.png` slices that use only red/green pixels.
+3. If auto-detection fails, NVAP prompts you to select Green and Red folders manually.
+4. Wait for loading dialogs to complete:
+- channel stack load
+- missing z-slice interpolation
+- PSF processing
+- initial render + metrics
+  During this step, NVAP shows `Elapsed` and estimated `ETA`.
+5. Use threshold/opacity/isosurface controls in the left panel.
+6. Check debug output in the `Debug Log` panel.
+
+### PSF responsiveness note
+
+- Richardson-Lucy on full `1024x1024xZ` stacks is expensive.
+- In the UI, PSF and dataset load now run in background threads with an elapsed-time and ETA loading dialog.
+- For interactive work, start with `Iterations = 1-3`, then increase if needed for final-quality output.
+- `Apply PSF` now supports cancellation from the loading dialog.
+- If canceled, NVAP keeps the previous rendered result unchanged.
+
+### Branch-preserving preprocessing and mesh clarity
+
+NVAP now applies a preprocessing chain before deconvolution:
+
+- Flat-field/background correction
+- Per-slice contrast normalization
+- Branch-preserving denoise (anisotropic default, stronger on green channel)
+
+To better clean isosurfaces from anisotropic microscopy stacks, NVAP also resamples Z to near-isotropic spacing for mesh rendering.
+Metrics remain computed on the processed (non-resampled) dataset.
+
+For visualization, NVAP additionally applies a display-only Z squeeze (2/3 scale) so depth is less visually disproportionate.
+
+For green microglia, default threshold initialization is biased lower to reduce the risk of cutting faint branches.
+
+### Measured PSF support
+
+If you place a measured PSF file in your dataset root (or `Input/`) with one of these names, NVAP will automatically use it:
+
+- `psf.npy`
+- `psf.npz` (first array or key `psf`)
+- `psf.tif` / `psf.tiff`
+
+If no measured PSF is found, NVAP falls back to the Gaussian PSF configured by sigma XY/Z.
+
+### Auto-save cache
+
+- Processed PSF volumes are cached automatically in `.nvap_cache/`.
+- Re-loading the same dataset with the same PSF settings reuses cache when available.
+- This avoids re-running full PSF deconvolution and speeds up re-open/re-render workflows.
 
 ## Windows packaging
 
