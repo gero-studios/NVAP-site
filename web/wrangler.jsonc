@@ -12,17 +12,11 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "RELEASE_KEY": "releases/NVAP-0.1.0-windows-cpu.exe",
+    "RELEASE_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.0-windows-cpu/NVAP.exe",
     "RELEASE_NAME": "NVAP-0.1.0-windows-cpu.exe",
-    "RELEASE_SIZE": "886637546",
-    "RELEASE_SHA256": "7B5EC4458FDC76B9B15313CA7F0594B39A0E67936409A65FB98DD2DF85E275A5",
+    "RELEASE_SIZE": "819918102",
+    "RELEASE_SHA256": "E1E9FE98A192D0BC14D2F8C4EA2852FBFA29360FA363D84C565BA30E3BD28815",
     "RELEASE_BUILD": "Windows CPU-safe build with bundled sample dataset, Python 3.13.14",
-    "RELEASE_BUILT_AT": "2026-07-07"
-  },
-  "r2_buckets": [
-    {
-      "binding": "NVAP_DOWNLOADS",
-      "bucket_name": "nvap-downloads"
-    }
-  ]
+    "RELEASE_BUILT_AT": "2026-07-08"
+  }
 }
