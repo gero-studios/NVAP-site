@@ -6,6 +6,7 @@ function releaseFromEnv(env, prefix) {
     sha256: env[`${prefix}_SHA256`],
     build: env[`${prefix}_BUILD`],
     builtAt: env[`${prefix}_BUILT_AT`],
+    commit: env[`${prefix}_COMMIT`] || "",
   };
 }
 
