@@ -62,7 +62,14 @@
 
     <h2 id="install">Installation</h2>
     <h3>Portable executable</h3>
-    <p>Download the Windows build and double-click <code class="inline">NVAP.exe</code>. The public download is a CPU-safe portable build without the bundled sample dataset so it can be served directly from Cloudflare.</p>
+    <p>Download the Windows build and double-click <code class="inline">NVAP.exe</code>. The public download is a CPU-safe portable build with the bundled sample dataset included.</p>
+    <p><strong>Windows SmartScreen or your antivirus may flag the download.</strong> NVAP is not code-signed — it's a small, independently built app, and unsigned <code class="inline">.exe</code> files with no download history are routinely flagged by SmartScreen and heuristic antivirus scanners even when they contain nothing malicious. If you see &ldquo;Windows protected your PC,&rdquo; click <strong>More info</strong>, then <strong>Run anyway</strong>. If your browser blocks the download outright, use <strong>Keep</strong> / <strong>Keep anyway</strong> when prompted.</p>
+    <p>To confirm the file you received matches what we published, compare its hash against the one served on this site (also returned by <code class="inline">/metadata</code>):</p>
+<pre><span class="c"># PowerShell — compare against the published hash below</span>
+Get-FileHash .\NVAP.exe -Algorithm SHA256
+
+<span class="c"># Published SHA-256</span>
+<span id="release-sha-docs">&hellip;</span></pre>
     <h3>From source</h3>
 <pre><span class="c"># From the repo root (Windows / PowerShell)</span>
 python -m venv .venv

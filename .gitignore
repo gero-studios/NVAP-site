@@ -1,0 +1,2 @@
+# Local wrangler dev state/cache — not part of the deployed site.
+/web/.wrangler/

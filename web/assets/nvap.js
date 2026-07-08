@@ -28,6 +28,16 @@
     });
   });
 
+  // ── Release checksum (fetched so it can't drift from the served build) ──
+  const shaEls = [document.getElementById('release-sha'), document.getElementById('release-sha-docs')].filter(Boolean);
+  if (shaEls.length) {
+    fetch('/metadata').then((r) => r.json()).then((meta) => {
+      shaEls.forEach((el) => {
+        el.textContent = el.id === 'release-sha' ? `SHA-256 ${meta.sha256}` : meta.sha256;
+      });
+    }).catch(() => {});
+  }
+
   // ── Docs TOC active highlight ──────────────────────────────
   const toc = document.querySelectorAll('.toc a');
   if (toc.length) {

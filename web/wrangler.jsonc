@@ -14,9 +14,9 @@
   "vars": {
     "RELEASE_KEY": "releases/NVAP-0.1.0-windows-cpu.exe",
     "RELEASE_NAME": "NVAP-0.1.0-windows-cpu.exe",
-    "RELEASE_SIZE": "259328954",
-    "RELEASE_SHA256": "D30856DBAABDED8EF66999485D7F27EBB1EA0AE93520DBCF499E0666977FED8A",
-    "RELEASE_BUILD": "Windows CPU-safe build, Python 3.13.14",
+    "RELEASE_SIZE": "886637546",
+    "RELEASE_SHA256": "7B5EC4458FDC76B9B15313CA7F0594B39A0E67936409A65FB98DD2DF85E275A5",
+    "RELEASE_BUILD": "Windows CPU-safe build with bundled sample dataset, Python 3.13.14",
     "RELEASE_BUILT_AT": "2026-07-07"
   },
   "r2_buckets": [
