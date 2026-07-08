@@ -17,6 +17,12 @@
     "RELEASE_SIZE": "819918102",
     "RELEASE_SHA256": "E1E9FE98A192D0BC14D2F8C4EA2852FBFA29360FA363D84C565BA30E3BD28815",
     "RELEASE_BUILD": "Windows CPU-safe build with bundled sample dataset, Python 3.13.14",
-    "RELEASE_BUILT_AT": "2026-07-08"
+    "RELEASE_BUILT_AT": "2026-07-08",
+    "RELEASE_DIRECTML_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.0-windows-cpu/NVAP-0.1.0-windows-directml.exe",
+    "RELEASE_DIRECTML_NAME": "NVAP-0.1.0-windows-directml.exe",
+    "RELEASE_DIRECTML_SIZE": "938346865",
+    "RELEASE_DIRECTML_SHA256": "7FB020CADED4B9C69FDFC2662B6E8AC8C5BC23372584A0DDA8DB868F6F1FE983",
+    "RELEASE_DIRECTML_BUILD": "Windows DirectML GPU build (AMD/Intel) with bundled sample dataset, Python 3.12.13",
+    "RELEASE_DIRECTML_BUILT_AT": "2026-07-08"
   }
 }

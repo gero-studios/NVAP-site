@@ -1,11 +1,11 @@
-function releaseFromEnv(env) {
+function releaseFromEnv(env, prefix) {
   return {
-    url: env.RELEASE_URL,
-    name: env.RELEASE_NAME,
-    size: Number(env.RELEASE_SIZE),
-    sha256: env.RELEASE_SHA256,
-    build: env.RELEASE_BUILD,
-    builtAt: env.RELEASE_BUILT_AT,
+    url: env[`${prefix}_URL`],
+    name: env[`${prefix}_NAME`],
+    size: Number(env[`${prefix}_SIZE`]),
+    sha256: env[`${prefix}_SHA256`],
+    build: env[`${prefix}_BUILD`],
+    builtAt: env[`${prefix}_BUILT_AT`],
   };
 }
 
@@ -20,22 +20,32 @@ function download(request, release) {
       headers: { Allow: "GET, HEAD" },
     });
   }
+  if (!release.url) {
+    return new Response("Release artifact not configured", { status: 404 });
+  }
   return Response.redirect(release.url, 302);
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const release = releaseFromEnv(env);
+    const cpuRelease = releaseFromEnv(env, "RELEASE");
+    const gpuRelease = releaseFromEnv(env, "RELEASE_DIRECTML");
 
     if (url.pathname === "/download") {
-      return download(request, release);
+      return download(request, cpuRelease);
+    }
+
+    if (url.pathname === "/download/directml") {
+      return download(request, gpuRelease);
     }
 
     if (url.pathname === "/metadata") {
       return Response.json({
-        ...release,
-        sizeMiB: formatMiB(release.size),
+        cpu: { ...cpuRelease, sizeMiB: formatMiB(cpuRelease.size) },
+        directml: gpuRelease.url
+          ? { ...gpuRelease, sizeMiB: formatMiB(gpuRelease.size) }
+          : null,
       }, {
         headers: { "Cache-Control": "no-store" },
       });

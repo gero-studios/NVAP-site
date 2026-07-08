@@ -70,6 +70,13 @@ Get-FileHash .\NVAP.exe -Algorithm SHA256
 
 <span class="c"># Published SHA-256</span>
 <span id="release-sha-docs">&hellip;</span></pre>
+    <h3>DirectML build (AMD / Intel GPUs)</h3>
+    <p>The default portable build above is deliberately CPU-only — it excludes Torch entirely so it stays small and avoids the antivirus/SmartScreen scrutiny that unsigned, torch-bundled executables tend to attract. If you have an AMD or Intel GPU and want GPU acceleration, <a href="/download/directml">download the DirectML build</a> instead: same app, larger download (Torch + DirectML bundled), GPU-accelerated. It only runs on Windows.</p>
+<pre><span class="c"># PowerShell — compare against the published hash below</span>
+Get-FileHash .\NVAP.exe -Algorithm SHA256
+
+<span class="c"># Published SHA-256 (DirectML build)</span>
+<span id="release-sha-directml-docs">&hellip;</span></pre>
     <h3>From source</h3>
 <pre><span class="c"># From the repo root (Windows / PowerShell)</span>
 python -m venv .venv

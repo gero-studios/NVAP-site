@@ -28,13 +28,19 @@
     });
   });
 
-  // ── Release checksum (fetched so it can't drift from the served build) ──
+  // ── Release checksums (fetched so they can't drift from the served build) ──
   const shaEls = [document.getElementById('release-sha'), document.getElementById('release-sha-docs')].filter(Boolean);
-  if (shaEls.length) {
+  const shaGpuEls = [document.getElementById('release-sha-directml'), document.getElementById('release-sha-directml-docs')].filter(Boolean);
+  if (shaEls.length || shaGpuEls.length) {
     fetch('/metadata').then((r) => r.json()).then((meta) => {
       shaEls.forEach((el) => {
-        el.textContent = el.id === 'release-sha' ? `SHA-256 ${meta.sha256}` : meta.sha256;
+        el.textContent = el.id === 'release-sha' ? `SHA-256 ${meta.cpu.sha256}` : meta.cpu.sha256;
       });
+      if (meta.directml) {
+        shaGpuEls.forEach((el) => {
+          el.textContent = el.id === 'release-sha-directml' ? `SHA-256 ${meta.directml.sha256}` : meta.directml.sha256;
+        });
+      }
     }).catch(() => {});
   }
 
