@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVAP — Documentation</title>
+<meta name="description" content="How to install, use, and interpret NVAP — the NeuroVascular Analytics Program.">
+<meta property="og:image" content="assets/nvap-logo-512.png">
+<meta name="twitter:image" content="assets/nvap-logo-512.png">
+<link rel="stylesheet" href="assets/nvap.css">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true"><div class="orb g"></div><div class="orb r"></div></div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">
+      <img class="mark" src="assets/nvap-logo-512.png" alt="" width="28" height="28">
+      <span>NVAP</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#capabilities">Capabilities</a>
+      <a href="index.html#analytics">Analytics</a>
+      <a href="docs.html">Docs</a>
+    </div>
+    <a class="nav-cta" href="index.html#download">Download</a>
+  </div>
+</nav>
+
+<main class="wrap">
+<div class="doc-shell">
+  <!-- TOC -->
+  <aside class="toc">
+    <a href="#overview">Overview</a>
+    <a href="#install">Installation</a>
+    <a href="#loading">Loading data</a>
+    <a href="#project-sets">Multi-sample projects</a>
+    <a href="#usage">Using the app</a>
+    <a href="#automatic">Automatic on load</a>
+    <a href="#shortcuts">Keyboard shortcuts</a>
+    <a href="#analytics">How analytics work</a>
+    <a href="#exports">CSV exports</a>
+    <a href="#cli">Command line</a>
+    <a href="#gpu">GPU &amp; backends</a>
+  </aside>
+
+  <!-- Body -->
+  <article class="doc-body">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span> Documentation</span>
+      <h1 class="display" style="font-size:clamp(2.2rem,5vw,3.2rem);margin:20px 0 10px">Documentation</h1>
+      <p class="lead">Install NVAP, load a dataset, and read exactly what every metric means. Green is microglia; red is vasculature.</p>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>NVAP is a desktop application for two-channel 3D microscopy of brain tissue. It loads image stacks, cleans and aligns them, renders both channels together in interactive 3D, computes morphometric and spatial-association metrics, and exports them as CSV. It runs on CPU everywhere and uses a GPU automatically when a supported one is present.</p>
+    <p>Metrics are physically calibrated using voxel spacing in micrometres. The default spacing is <code class="inline">x = 0.331</code>, <code class="inline">y = 0.331</code>, <code class="inline">z = 0.4</code> µm. The separate Z height scale control only changes how the volume is drawn in 3D; it does not change measurements.</p>
+
+    <h2 id="install">Installation</h2>
+    <h3>Portable executable</h3>
+    <p>Download the Windows build and double-click <code class="inline">NVAP.exe</code>. The public download is a CPU-safe portable build without the bundled sample dataset so it can be served directly from Cloudflare.</p>
+    <h3>From source</h3>
+<pre><span class="c"># From the repo root (Windows / PowerShell)</span>
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e <span class="k">".[dev]"</span>
+nvap --debug</pre>
+    <p>For AMD or Intel GPUs on Windows, use a Python 3.12 environment with the DirectML extra:</p>
+<pre>uv venv --python 3.12 .venv-gpu
+.\.venv-gpu\Scripts\Activate.ps1
+python -m pip install -e <span class="k">".[dev,directml]"</span>
+nvap --debug</pre>
+
+    <h2 id="loading">Loading data</h2>
+    <p><strong>Recommended:</strong> use an RGB slice folder when you can. It is the easiest workflow because you do not have to split the stack into separate Green and Red folders first.</p>
+    <ul>
+      <li><strong>Recommended: RGB slice folders.</strong> Put one image per z-slice in a single folder. Filenames must include a z-index such as <code class="inline">sample_z030.png</code> or <code class="inline">sample_z030c1+2.png</code>. Pixels should be red-only for vasculature, green-only for microglia, or black background. Blue signal is not accepted, and pixels that mix red and green in the same location will fail the red/green-only check.</li>
+      <li><strong>Separated per-slice folders.</strong> If your data is already split by channel, filenames can carry both a z-index and a channel marker: <code class="inline">..._z030c1.png</code> (green) and <code class="inline">..._z030c2.png</code> (red). A common layout is <code class="inline">Input/Segmented/Green</code> and <code class="inline">Input/Segmented/Red</code>.</li>
+      <li><strong>Single stack files.</strong> Each channel folder may instead hold one multi-page TIFF with all z-slices. A single red/green RGB stack file is also accepted when the red and green channels follow the same red-only, green-only, black-background rule.</li>
+    </ul>
+    <p>In the app, click <strong>Load Dataset</strong> (or <kbd>Ctrl</kbd>+<kbd>L</kbd>). For an RGB slice folder, choose that folder as the dataset root. For manually separated sources, choose the vasculature (red) source first, then the microglia (green) source. NVAP interpolates missing z-slices, aligns the shared z-range, and renders the result.</p>
+
+    <h2 id="project-sets">Multi-sample project sets</h2>
+    <p>A multi-sample project set is a parent folder that contains one loadable dataset folder per sample. Each sample can use the recommended RGB slice-folder layout, the separated Green/Red layout, or compatible TIFF stacks.</p>
+<pre>Study/
+  Sample_001/
+    sample001_z001.png
+    sample001_z002.png
+    sample001_z003.png
+  Sample_002/
+    sample002_z001.png
+    sample002_z002.png
+    sample002_z003.png
+  Sample_003/
+    Input/
+      Segmented/
+        Green/
+          sample003_z001c1.png
+        Red/
+          sample003_z001c2.png</pre>
+    <p>Click <strong>Load Dataset</strong> and choose the parent folder, such as <code class="inline">Study/</code>. NVAP scans the child folders for loadable datasets, opens the first sample, and shows a project-set bar with a sample dropdown plus previous/next controls.</p>
+    <p>Analysis is per selected sample. When you move through a project set, NVAP loads and processes each sample independently: missing z-slices are filled, channels are aligned, automatic cleanup is applied, default thresholds are prepared, and the volume is rendered. The metrics panel and CSV export reflect the currently selected sample, so step through the project set and export each sample when you want one result bundle per specimen.</p>
+    <p>For best comparisons across many samples, keep naming consistent, use the same voxel spacing unless the microscope settings changed, and avoid mixing RGB-folder and separated-folder conventions inside the same sample folder.</p>
+
+    <h2 id="usage">Using the app</h2>
+    <p>NVAP starts in simple mode: <strong>Load Dataset → adjust thresholds → export.</strong> Toggle <strong>Show advanced controls</strong> for masking and preprocessing settings.</p>
+    <h3>Rendering controls</h3>
+    <ul>
+      <li><strong>Threshold (green / red)</strong> — the intensity cutoff that defines each structure. The same threshold drives the 3D view and every metric.</li>
+      <li><strong>Opacity</strong> and <strong>isosurface toggles</strong> — how each channel is drawn.</li>
+      <li><strong>Trim first/last Z</strong> — exclude edge slices from both the view and all metrics.</li>
+      <li><strong>Offset (x/y/z)</strong> — shift green relative to red to correct registration; applied identically to the view and the overlap metric, snapped to the nearest voxel.</li>
+      <li><strong>Z height scale</strong> — a display-only depth scale. Metrics always use physical spacing.</li>
+    </ul>
+    <h3>Individual microglia viewer</h3>
+    <p>Enable <strong>View one microglia</strong> and pick a <strong>Cell</strong> index to isolate a single component in 3D. Components are ranked largest-first at the current green threshold.</p>
+
+    <h2 id="automatic">Automatic on load</h2>
+    <p>Every time a dataset finishes loading — including each dataset when you page through a multi-stack project set — NVAP cleans it up automatically:</p>
+    <ul>
+      <li><strong>Default thresholds</strong> (green 0.80, red 0.60) are applied.</li>
+      <li><strong>Enhance microglia (clean)</strong> runs the selected enhancement on the green channel. Skipped if the dataset already has a cached enhancement.</li>
+      <li><strong>Wipe specks</strong> removes small isolated blobs from both channels.</li>
+    </ul>
+    <p>The two cleanup passes have <strong>on-load toggles</strong> in the Microglia Workbench (both on by default). They are always available, so you can turn them off before loading anything.</p>
+
+    <h2 id="shortcuts">Keyboard shortcuts</h2>
+    <table class="tbl">
+      <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+      <tbody>
+        <tr><td><kbd>Ctrl</kbd> <kbd>L</kbd></td><td>Load dataset</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>E</kbd></td><td>Export metrics CSV</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td>Export snapshot PNG</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>M</kbd></td><td>Export 3D mesh</td></tr>
+        <tr><td><kbd>Ctrl</kbd> <kbd>A</kbd></td><td>Toggle auto-apply</td></tr>
+        <tr><td><kbd>F5</kbd> / <kbd>Return</kbd></td><td>Apply pending changes</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="analytics">How analytics work</h2>
+    <p>Every metric is computed after applying the active threshold, slice trim, and (for overlap) the registration offset — so the numbers describe exactly the trimmed structure shown in 3D. All volumes are 3D <code class="inline">(z, y, x)</code> arrays; lengths are micrometres.</p>
+    <h3>Basic metrics <span class="chip" style="vertical-align:middle"><span class="sw g"></span><span class="sw r"></span></span></h3>
+    <p>Per channel: voxel count, physical volume, connected components (26-connectivity), largest component, and red–green overlap in the shared z-range after the green mask is shifted by the whole-voxel offset.</p>
+    <h3>Vascular morphometry <span class="chip" style="vertical-align:middle"><span class="sw r"></span></span></h3>
+    <p>The red mask is skeletonised and measured: <strong>volume fraction</strong> over retained tissue, <strong>centreline length</strong> and <strong>length density</strong> (mm/mm³), <strong>radius</strong> from a ridge-corrected distance transform along the medial axis, <strong>junctions</strong> and <strong>endpoints</strong>, <strong>segment length</strong>, <strong>tortuosity</strong> (geodesic ÷ straight-line), and <strong>surface-to-volume ratio</strong> (boundary faces excluded).</p>
+    <h3>Per-cell microglia morphometry <span class="chip" style="vertical-align:middle"><span class="sw g"></span></span></h3>
+    <p>Each cell is segmented into a soma and processes. Branch topology comes from the soma-excluded skeleton; process <strong>tips</strong> are the regional maxima of a geodesic field grown from the soma through the visible voxels. <strong>Sholl</strong> shells are one voxel-diagonal thick. Soma shape is reported as equivalent diameter, roundness and elongation. Distances to vasculature exclude voxels inside a vessel, so a distance is always to the nearest non-overlapping cell voxel.</p>
+    <h3>Neurovascular association</h3>
+    <p>Per-cell distances aggregate into population patterns: perivascular fractions within 5/10/20/50 µm, mean/median cell-, soma- and tip-to-vessel distances, and a <strong>tip-leading fraction</strong> — how often a process tip reaches a vessel at least as close as the soma does.</p>
+
+    <h2 id="exports">CSV exports</h2>
+    <p>Exporting metrics writes a base CSV plus companion files alongside it. Saving as <code class="inline">metrics.csv</code> produces:</p>
+    <table class="tbl">
+      <thead><tr><th>File</th><th>Contents</th></tr></thead>
+      <tbody>
+        <tr><td>metrics.csv</td><td>Per-channel basic metrics and red–green overlap</td></tr>
+        <tr><td>metrics_provenance.csv</td><td>Thresholds, trim, offsets, spacing, backend, dataset, timestamp</td></tr>
+        <tr><td>metrics_vascular.csv</td><td>Vascular morphometry (red channel)</td></tr>
+        <tr><td>metrics_microglia.csv</td><td>Per-cell microglia morphometry</td></tr>
+        <tr><td>metrics_neurovascular.csv</td><td>Neurovascular association patterns</td></tr>
+      </tbody>
+    </table>
+    <p>Snapshot export writes <code class="inline">snapshot.png</code>; mesh export writes PLY / OBJ / STL.</p>
+
+    <h2 id="cli">Command line</h2>
+    <p><code class="inline">nvap</code> also runs headless operations without opening the GUI.</p>
+<pre><span class="c"># Print the selected backend / threads / memory profile</span>
+nvap --print-runtime-profile
+
+<span class="c"># Run load + process + metrics without the GUI</span>
+nvap --headless-smoke --input Input
+
+<span class="c"># Export meshes headless</span>
+nvap --export-mesh --input Input --mesh-format ply
+
+<span class="c"># Force a compute backend</span>
+nvap --compute-backend cpu --cpu-workers 4</pre>
+
+    <h2 id="gpu">GPU &amp; backends</h2>
+    <p>NVAP selects a backend at startup, probing CUDA, ROCm, DirectML and Apple MPS in that order, then falling back to CPU if none is usable. Selection is defensive in three layers:</p>
+    <ul>
+      <li><strong>Selection</strong> — the first backend whose device is present.</li>
+      <li><strong>Capability probe</strong> — a candidate must actually run NVAP's convolutions on the device before it is chosen, so an incompatible GPU is rejected rather than trusted.</li>
+      <li><strong>Per-operation fallback</strong> — any GPU filter that fails mid-run falls back to the CPU path, so it degrades instead of crashing.</li>
+    </ul>
+    <p>The header status pill shows the active backend, e.g. <code class="inline">GPU DirectML</code> or <code class="inline">CPU compute</code>. On AMD/Intel Windows GPUs, DirectML requires Python 3.12.</p>
+
+    <hr class="grad-rule" style="margin:64px 0 40px">
+    <p style="font-size:13.5px"><a href="index.html" style="color:var(--green)">← Back to home</a></p>
+  </article>
+</div>
+</main>
+
+<script src="assets/nvap.js"></script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVAP — NeuroVascular Analytics Program</title>
+<meta name="description" content="A desktop application for quantifying two-channel 3D microscopy of brain tissue — microglia and vasculature — in interactive 3D, with physically calibrated morphometry and CSV export.">
+<meta property="og:image" content="assets/nvap-logo-512.png">
+<meta name="twitter:image" content="assets/nvap-logo-512.png">
+<link rel="stylesheet" href="assets/nvap.css">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+</head>
+<body>
+
+<div class="ambient" aria-hidden="true"><div class="orb g"></div><div class="orb r"></div></div>
+<div class="grain" aria-hidden="true"></div>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="brand" href="index.html">
+      <img class="mark" src="assets/nvap-logo-512.png" alt="" width="28" height="28">
+      <span>NVAP</span>
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#workflow">Workflow</a>
+      <a href="docs.html">Docs</a>
+    </div>
+    <a class="nav-cta" href="#download">Download</a>
+  </div>
+</nav>
+
+<main>
+<!-- Hero -->
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow reveal"><span class="dot"></span> NeuroVascular Analytics Program</span>
+    <h1 class="display reveal" data-d="1">Measure the microglia–<br><span class="serif">vasculature</span> relationship in 3D.</h1>
+    <p class="lead reveal" data-d="2">NVAP loads two-channel confocal stacks of brain tissue, cleans and aligns them, renders both channels together in interactive 3D, and computes physically calibrated morphometry you can export as CSV.</p>
+    <div class="hero-cta reveal" data-d="3">
+      <a class="btn btn-primary" href="#download">Download for Windows
+        <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0 4-4m-4 4-4-4M5 20h14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </a>
+      <a class="btn btn-ghost" href="docs.html">Read the documentation</a>
+    </div>
+    <div class="hero-meta reveal" data-d="4">
+      <span><span class="sw" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block"></span> GPU-accelerated (DirectML / CUDA / MPS)</span>
+      <span class="mono">·</span>
+      <span>CPU fallback everywhere</span>
+      <span class="mono">·</span>
+      <span>Anisotropy-aware, µm-calibrated</span>
+    </div>
+
+    <!-- Hero visual -->
+    <div class="hero-canvas-wrap reveal" data-d="2">
+      <div class="shell">
+        <div class="window">
+          <div class="titlebar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="tb-label">NVAP — 7951-3_M_CL_cortex_25X</span>
+            <span style="margin-left:auto" class="chips">
+              <span class="chip"><span class="sw g"></span> Microglia</span>
+              <span class="chip"><span class="sw r"></span> Vasculature</span>
+            </span>
+          </div>
+          <canvas id="neuro"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Stat strip -->
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat reveal"><div class="num g">4</div><div class="lbl">CSV metric families</div></div>
+      <div class="stat reveal" data-d="1"><div class="num">3D</div><div class="lbl">Sholl · skeleton · EDT</div></div>
+      <div class="stat reveal" data-d="2"><div class="num r">µm</div><div class="lbl">Physically calibrated</div></div>
+      <div class="stat reveal" data-d="3"><div class="num">1</div><div class="lbl">Portable executable</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- Capabilities bento -->
+<section id="capabilities">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow"><span class="dot"></span> Capabilities</span>
+      <h2 class="section-title" style="margin-top:22px">Everything from raw stacks to publishable numbers.</h2>
+      <p class="lead">One pipeline: import, interpolate, mask, render, quantify, export. What you see rendered is exactly what gets measured.</p>
+    </div>
+    <div class="bento">
+      <div class="card col-3 accent-g reveal">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 16 9 5 9-5M3 12l9 5 9-5"/></svg></div>
+          <h3>Load anything</h3>
+          <p>Per-slice folders or multi-page TIFFs, one per channel. Missing z-slices are interpolated and both channels are aligned onto a common z-range automatically.</p>
+        </div>
+      </div>
+      <div class="card col-3 accent-g reveal" data-d="1">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M6 6l2 2m8 8 2 2m0-12-2 2m-8 8-2 2"/></svg></div>
+          <h3>Branch-preserving cleanup</h3>
+          <p>A microglia masking pipeline isolates cells without eroding fine processes. Default thresholds, a clean enhancement pass, and a speck wipe run automatically on every load.</p>
+        </div>
+      </div>
+      <div class="card col-3 accent-r reveal">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12c-4 0-4 6-8 6s-4-12-8-12" stroke-linecap="round"/><circle cx="5" cy="6" r="1.4" fill="currentColor" stroke="none"/></svg></div>
+          <h3>Vascular morphometry</h3>
+          <p>Volume fraction, centreline length and density, radius from the medial-axis EDT, junctions, tortuosity, and surface-to-volume ratio — all anisotropy-aware.</p>
+        </div>
+      </div>
+      <div class="card col-3 accent-g reveal" data-d="1">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/></svg></div>
+          <h3>Per-cell microglia analysis</h3>
+          <p>Branches, process tips, junctions, total length, Sholl ramification, and soma shape — computed per cell in true 3D, each ranked and inspectable on its own.</p>
+        </div>
+      </div>
+      <div class="card col-4 reveal">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z"/><path d="M12 22V12M3 7l9 5 9-5"/></svg></div>
+          <h3>Interactive 3D, honestly rendered</h3>
+          <p>Independent volume and isosurface rendering per channel. The isosurface sits at exactly the threshold the metrics use, and the registration offset snaps to the same voxel the overlap is measured on — the picture never disagrees with the numbers.</p>
+        </div>
+      </div>
+      <div class="card col-2 accent-r reveal" data-d="1">
+        <div class="card-core">
+          <div class="ico-badge"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg></div>
+          <h3>GPU or CPU</h3>
+          <p>Backends are probed at startup and verified on-device; anything unusable falls back to CPU without a crash.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Analytics split -->
+<section id="analytics">
+  <div class="wrap split">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span> Neurovascular association</span>
+      <h2 class="section-title" style="margin:22px 0 18px">The spatial relationship, quantified.</h2>
+      <p class="lead">Per-cell distances aggregate into population patterns: how much of the microglia population sits in the perivascular niche, and whether processes reach toward vessels ahead of the cell body.</p>
+      <div class="chips" style="margin-top:26px">
+        <span class="chip"><span class="sw g"></span> Green · Microglia</span>
+        <span class="chip"><span class="sw r"></span> Red · Vasculature</span>
+      </div>
+      <p style="margin-top:26px;font-size:14px">Every export ships a <code class="inline">metrics_provenance.csv</code> recording the thresholds, trim, spacing, backend and dataset that produced the numbers — reproducible by construction.</p>
+    </div>
+    <div class="shell reveal" data-d="1">
+      <div class="card-core" style="border-radius:16px">
+        <div class="metric-list">
+          <div class="metric-row"><span class="name">Perivascular fraction</span><span class="desc">5 / 10 / 20 / 50 µm</span></div>
+          <div class="metric-row"><span class="name">Cell · soma · tip → vessel</span><span class="desc">mean · median · min</span></div>
+          <div class="metric-row"><span class="name">Tip-leading fraction</span><span class="desc">tip vs. soma</span></div>
+          <div class="metric-row"><span class="name">Sholl ramification</span><span class="desc">peak · critical · enclosing</span></div>
+          <div class="metric-row"><span class="name">Vessel radius / diameter</span><span class="desc">ridge-corrected EDT</span></div>
+          <div class="metric-row"><span class="name">Length density</span><span class="desc">mm / mm³ tissue</span></div>
+          <div class="metric-row"><span class="name">Tortuosity</span><span class="desc">geodesic / euclidean</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Workflow -->
+<section id="workflow">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <span class="eyebrow"><span class="dot"></span> Workflow</span>
+      <h2 class="section-title" style="margin-top:22px">Four steps, automatic on load.</h2>
+      <p class="lead">Load one dataset or page through a multi-stack project — each is cleaned the same way before it is measured.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">01</div><h4>Load</h4><p>Pick the red and green sources. Slices are read, gaps interpolated, channels aligned.</p></div>
+      <div class="step reveal" data-d="1"><div class="n">02</div><h4>Clean</h4><p>Default thresholds, the clean microglia enhancement, and a speck wipe run automatically.</p></div>
+      <div class="step reveal" data-d="2"><div class="n">03</div><h4>Render</h4><p>Both channels appear in 3D with independent threshold, opacity, isosurface and offset controls.</p></div>
+      <div class="step reveal" data-d="3"><div class="n">04</div><h4>Quantify</h4><p>Run per-cell and vascular analysis, inspect single cells, then export CSV, snapshots and meshes.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Get started / download -->
+<section id="download">
+  <div class="wrap split">
+    <div class="reveal">
+      <span class="eyebrow"><span class="dot"></span> Get started</span>
+      <h2 class="section-title" style="margin:22px 0 18px">Run the app, or the source.</h2>
+      <p class="lead">Download the portable Windows build and double-click it. This public build is CPU-safe and ships without the sample dataset so the executable can be served directly from Cloudflare. Or run from source in a virtual environment.</p>
+      <div class="hero-cta" style="justify-content:flex-start;margin-top:32px">
+        <a class="btn btn-primary" href="/download">Download NVAP
+          <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 4v12m0 0 4-4m-4 4-4-4M5 20h14" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <a class="btn btn-ghost" href="docs.html#install">Install from source</a>
+      </div>
+    </div>
+    <div class="reveal" data-d="1">
+<pre><span class="c"># From the repo root — run from source</span>
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e <span class="k">".[dev]"</span>
+nvap --debug
+
+<span class="c"># Verify the selected compute backend</span>
+nvap --print-runtime-profile
+<span class="c"># -> "selected_backend": <span class="r">"directml"</span></span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="padding-top:0">
+  <div class="wrap narrow">
+    <div class="section-head reveal" style="margin-bottom:36px">
+      <span class="eyebrow"><span class="dot"></span> Questions</span>
+      <h2 class="section-title" style="margin-top:22px">Good to know.</h2>
+    </div>
+    <div class="reveal">
+      <div class="acc-item"><button class="acc-q">What input does it accept?<span class="sign">+</span></button><div class="acc-a"><p>Per-slice image folders or a single multi-page TIFF per channel. Filenames carry a z-index and channel marker (<code class="inline">c1</code> green, <code class="inline">c2</code> red); RGB red/green-only slices work too.</p></div></div>
+      <div class="acc-item"><button class="acc-q">Does it need a GPU?<span class="sign">+</span></button><div class="acc-a"><p>No. NVAP probes CUDA, ROCm, DirectML and Apple MPS, verifies the backend on-device, and falls back to CPU cleanly. On AMD/Intel Windows GPUs it uses DirectML (Python 3.12).</p></div></div>
+      <div class="acc-item"><button class="acc-q">Are the measurements physically calibrated?<span class="sign">+</span></button><div class="acc-a"><p>Yes. Voxel spacing in micrometres drives every distance, area and volume, and anisotropic spacing is respected throughout. Trim, threshold and offset are applied identically to the view and the metrics.</p></div></div>
+      <div class="acc-item"><button class="acc-q">Can I reproduce a result later?<span class="sign">+</span></button><div class="acc-a"><p>Each export writes a provenance CSV with the exact thresholds, trim, offsets, spacing, backend, dataset identity and timestamp used — so any CSV is self-describing.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA band -->
+<section class="cta-band" style="padding-top:0">
+  <div class="wrap">
+    <div class="shell reveal">
+      <div class="card-core">
+        <h2 class="display" style="font-size:clamp(2rem,5vw,3.4rem)">Bring your stacks. <span class="serif">Leave with numbers.</span></h2>
+        <div class="hero-cta" style="margin-top:34px">
+          <a class="btn btn-primary" href="#download">Download for Windows
+            <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14m0 0-5-5m5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          </a>
+          <a class="btn btn-ghost" href="docs.html">Documentation</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <div class="col" style="max-width:280px">
+        <a class="brand" href="index.html" style="margin-bottom:14px">
+          <img class="mark" src="assets/nvap-logo-512.png" alt="" width="28" height="28">
+          <span>NVAP</span>
+        </a>
+        <p style="font-size:13.5px">NeuroVascular Analytics Program — 3D microglia and vasculature quantification for the desktop.</p>
+      </div>
+      <div class="col"><h5>Product</h5><a href="#capabilities">Capabilities</a><a href="#analytics">Analytics</a><a href="#workflow">Workflow</a><a href="#download">Download</a></div>
+      <div class="col"><h5>Documentation</h5><a href="docs.html#usage">Using the app</a><a href="docs.html#analytics">How analytics work</a><a href="docs.html#cli">Command line</a><a href="docs.html#exports">CSV exports</a></div>
+    </div>
+    <hr class="grad-rule" style="margin-top:44px">
+    <div class="foot-legal"><span>NVAP — NeuroVascular Analytics Program</span><span>Microglia · Vasculature · 3D morphometry</span></div>
+  </div>
+</footer>
+
+<script src="assets/nvap.js"></script>
+</body>
+</html>

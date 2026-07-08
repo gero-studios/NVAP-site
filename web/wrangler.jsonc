@@ -1,0 +1,28 @@
+{
+  "$schema": "../NVAP/node_modules/wrangler/config-schema.json",
+  "name": "nvap-download",
+  "main": "_worker.js",
+  "compatibility_date": "2026-07-07",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  },
+  "vars": {
+    "RELEASE_KEY": "releases/NVAP-0.1.0-windows-cpu.exe",
+    "RELEASE_NAME": "NVAP-0.1.0-windows-cpu.exe",
+    "RELEASE_SIZE": "259328954",
+    "RELEASE_SHA256": "D30856DBAABDED8EF66999485D7F27EBB1EA0AE93520DBCF499E0666977FED8A",
+    "RELEASE_BUILD": "Windows CPU-safe build, Python 3.13.14",
+    "RELEASE_BUILT_AT": "2026-07-07"
+  },
+  "r2_buckets": [
+    {
+      "binding": "NVAP_DOWNLOADS",
+      "bucket_name": "nvap-downloads"
+    }
+  ]
+}
