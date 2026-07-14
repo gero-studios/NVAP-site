@@ -12,19 +12,19 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "RELEASE_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.0-windows-cpu/NVAP.exe",
-    "RELEASE_NAME": "NVAP-0.1.0-windows-cpu.exe",
-    "RELEASE_SIZE": "819925089",
-    "RELEASE_SHA256": "8785560C25FE4A04479B441EBB3723D044A60BEC31B1A7CF97096D6FC2936BE9",
+    "RELEASE_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.2-windows-cpu/NVAP-0.1.2-windows-cpu.exe",
+    "RELEASE_NAME": "NVAP-0.1.2-windows-cpu.exe",
+    "RELEASE_SIZE": "820483691",
+    "RELEASE_SHA256": "17EB2F5D32A3DAB90EF386E74AF67E62063E7B76D14B3ABCF9C8E72069C79DD5",
     "RELEASE_BUILD": "Windows CPU-safe build with bundled sample dataset, Python 3.13.14",
-    "RELEASE_BUILT_AT": "2026-07-08",
-    "RELEASE_COMMIT": "26e2d90",
-    "RELEASE_DIRECTML_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.0-windows-cpu/NVAP-0.1.0-windows-directml.exe",
-    "RELEASE_DIRECTML_NAME": "NVAP-0.1.0-windows-directml.exe",
-    "RELEASE_DIRECTML_SIZE": "938350062",
-    "RELEASE_DIRECTML_SHA256": "83B04F2F0B5842E5E19D0719D0B2E617863DAD937C361801B214B49DE24E7A97",
-    "RELEASE_DIRECTML_BUILD": "Windows DirectML GPU build (AMD/Intel) with bundled sample dataset, Python 3.12.13",
-    "RELEASE_DIRECTML_BUILT_AT": "2026-07-08",
-    "RELEASE_DIRECTML_COMMIT": "26e2d90"
+    "RELEASE_BUILT_AT": "2026-07-14",
+    "RELEASE_COMMIT": "e17ba4e",
+    "RELEASE_DIRECTML_URL": "https://github.com/gero-studios/NVAP/releases/download/v0.1.2-windows-cpu/NVAP-0.1.2-windows-directml.exe",
+    "RELEASE_DIRECTML_NAME": "NVAP-0.1.2-windows-directml.exe",
+    "RELEASE_DIRECTML_SIZE": "938910845",
+    "RELEASE_DIRECTML_SHA256": "6399522494E5F0EDB2B634F70C76F7853994B67AA15A6C9D02C4EF974850F60A",
+    "RELEASE_DIRECTML_BUILD": "Windows DirectML GPU build (AMD/Intel) with bundled sample dataset, Python 3.12.13; CPU fallback included",
+    "RELEASE_DIRECTML_BUILT_AT": "2026-07-14",
+    "RELEASE_DIRECTML_COMMIT": "e17ba4e"
   }
 }
